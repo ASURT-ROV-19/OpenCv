@@ -2,16 +2,23 @@ import cv2
 import math
 import numpy as np
 
+# Create Video Object to capture frames 
 Video = cv2.VideoCapture(0)
+
+
 flag = 0
+# Split the Frame into 3 Vertical Regions 
 R1 = 0
 R2 = 0
 R3 = 0
+# Split the Frame into 3 Horizontal Regions 
 R4 = 0
 R5 = 0
 R6 = 0
+# Dummy Number for amount of red in each Region if > red => then this Region has a red line
 red = 49000
 current_dir = 'right'
+# Check current state and amount of red in each Region to Change Direction
 def change_dirr (dir,R1,R2,R3):
     if R2 >= red and R1 < red and R3 < red:
         return dir
@@ -31,6 +38,7 @@ def change_dirr (dir,R1,R2,R3):
 
 while True:
 
+    # img is the frame from Video
     _, img = Video.read()
 #    img = cv2.imread('s2.jpg',cv2.IMREAD_COLOR)
     # =======to draw the rectangles only=====
@@ -40,7 +48,10 @@ while True:
 
     # detect red lines
     # =======================================
+    # cvtColor convert the img from BGR Color system to HSV System (easier to detect color)
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    
+    # Range of Red Color to detect Red color
     # ============  Camera Laptop Helaly =============
     # min = np.array([0, 40, 40])
     # max = np.array([100, 150, 150])
@@ -50,11 +61,17 @@ while True:
     min = np.array([150, 40, 40])
     max = np.array([180, 255, 255])
 
+    # make a mask(picture of just white and black color ... the white is the color we detect) to detect the red Color 
     mask = cv2.inRange(hsv, min, max)
+
+    # dimintions of img 
     height, width = img.shape[:2]
+    
+    # res = frame + mask == image with just red color (color we detect in mask)
     res1 = cv2.bitwise_and(img, img, mask=mask)
     res2 = res1
 
+    # Clean Noise of Picture .. comment it if you want
     kernal = np.ones((5, 5), np.uint8)
     res1 = cv2.morphologyEx(res1, cv2.MORPH_CLOSE, kernal)
     # ===============Vertical Reigons======================
@@ -80,8 +97,11 @@ while True:
     # Get the dimensions of the Reigon!
     roi1_h, roi1_w = roi1.shape[:2]
     roi4_h, roi4_w = roi4.shape[:2]
-    w = cv2.waitKey(3) & 0xFF
 
+    # if key is pressed .. store it in w 
+    w = cv2.waitKey(3) & 0xFF
+    
+    
     if w == ord('a'):
         flag = 1
         for i in range(roi1_h - 1):
