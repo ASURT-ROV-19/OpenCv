@@ -5,12 +5,33 @@ import numpy as np
 
 ''' ==========================
 white circle is end
-
 dark  is start
-
-
-
  ============================ '''
+
+def Find_black_corners(img):
+
+    img_black=img
+    hsv_black = cv2.cvtColor(img_black, cv2.COLOR_BGR2HSV)
+    lower_black = np.array([0, 0, 0])
+    upper_black = np.array([10, 10, 60])
+    black_mask= cv2.inRange(hsv_black, lower_black, upper_black)
+    kernal = np.ones((5, 5), np.uint8)
+    gray_res = cv2.morphologyEx(black_mask, cv2.MORPH_CLOSE, kernal)
+    edges = cv2.Canny(gray_res, 100, 100)
+    _,cnts,h  = cv2.findContours(edges.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = sorted(cnts, key = cv2.contourArea, reverse = True)[:10]
+    cv2.imshow("imgof2fn",edges)
+    if(len(cnts)>1):
+        peri = cv2.arcLength(cnts[0], True)
+        approx = cv2.approxPolyDP(cnts[0], 0.02 * peri, True)
+        print(len(approx))
+
+    
+
+
+
+
+
 
 def next_state_finder(start,end,prev,zawya):
 
@@ -130,7 +151,8 @@ current= 0
 startpoint=0
 endpoint=0
 first_time=1
-img = cv2.imread("test37.png", cv2.IMREAD_COLOR)
+img = cv2.imread("test38.png", cv2.IMREAD_COLOR)
+img_test_black=img
 # detect red lines
 # =======================================
 hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -143,7 +165,7 @@ gray_res = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
 kernal = np.ones((5, 5), np.uint8)
 gray_res = cv2.morphologyEx(gray_res, cv2.MORPH_CLOSE, kernal)
 # =======================================
-
+Find_black_corners(img_test_black)
 # ============ get edges =======================
 edges = cv2.Canny(gray_res, 100, 100)
 # =============================================
