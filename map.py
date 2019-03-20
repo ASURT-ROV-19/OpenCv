@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 img_size = (30*20,40*20)
 grid = np.ones(img_size)
 
-# draws the grid for trial purposes
+# draws the grid lines 
 x = grid.shape[1]/4
 cv2.line(grid, (x,0), (x,grid.shape[0]), (0, 0, 0), 2)
 x = x + grid.shape[1]/4
@@ -54,19 +54,21 @@ for i in range(mapLength):
         break
     i = i+2
 	
-	measurement = '1.8 cm'
-font                   = cv2.FONT_HERSHEY_SIMPLEX
-bottomLeftCornerOfText = (x-3,y-3)
-fontScale              = 1
-fontColor              = (0,0,255)
-lineType               = 2
+# measurement = '1.8 cm'
+# font                   = cv2.FONT_HERSHEY_SIMPLEX
+# bottomLeftCornerOfText = (x-3,y-3)
+# fontScale              = 1
+# fontColor              = (0,0,255)
+# lineType               = 2
 
-cv2.putText(grid,measurement, 
-    bottomLeftCornerOfText, 
-    font, 
-    fontScale,
-    fontColor,
-    lineType)
+# cv2.putText(grid,measurement, 
+#     bottomLeftCornerOfText, 
+#     font, 
+#     fontScale,
+#     fontColor,
+#     lineType)
+
+cv2.circle(grid,(x,y), 10, (0,255,0), -1)
 
 cv2.imshow('image', grid)
 cv2.imwrite('trial1.png',grid)
@@ -74,3 +76,4 @@ cv2.imwrite('trial1.png',grid)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+
