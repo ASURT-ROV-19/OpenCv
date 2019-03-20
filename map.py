@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 grid = cv2.imread("E:\ROV\Competition\grid2.png")
 # img_size = (30*30,40*30)
 grid = np.ones(img_size)
+
+# draws the grid for trial purposes
 x = grid.shape[1]/4
 cv2.line(grid, (x,0), (x,grid.shape[0]), (0, 0, 0), 2)
 x = x + grid.shape[1]/4
