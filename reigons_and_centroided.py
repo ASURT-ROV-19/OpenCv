@@ -17,7 +17,7 @@ directions=[]
 #Define an object from the UDP class
 #Target ip is the Pi's address.
 #port is the port we are communicating with
-udb_socket=UDP_Client("192.168.43.232",9020)
+udb_socket=UDP_Client("10.1.1.15",9020)
 
 
 def black_tile_edges(frame):
@@ -190,10 +190,12 @@ def edge_detect(frame):
   return blur5-blur3
 
 def error_founder(points,frame):
-  #half_height=height/2
-  #half_width=width/2
-  points_testing={"x":xmiddle,"y":ymiddle}
-  points_testing=actual_center("middle")
+  half_height=height/2
+  half_width=width/2
+  points_testing={"x":half_width,"y":half_height}
+  # points_testing=coordiante_fixer("middle",points_testing)
+  cv2.circle(frame,(int(points_testing['x']),int(points_testing['y'])), 20, (45,191,255), -1)
+  #points_testing=actual_center("middle")
   cv2.line(frame,(int(points_testing['x']),int(points_testing['y'])),(int(points['x']),int(points['y'])),(255,0,0),5)
   error_x=points['x']-points_testing['x']
   error_y=points['y']-points_testing['y']
@@ -205,31 +207,31 @@ def coordiante_fixer(reigon,points):
   #due to we having 5 frames, we will do this to fix the coordiantes
   if(reigon == "top"):
 
-      points['x']=points['x']+(int((width/2))-reigon_half)
+      points['x']=points['x']+(int((width/2))-reigon_half_width)
       points['y']= points['y'] +(int((height/2))-3*reigon_half)
       cv2.circle(frame,(points['x'],points['y']), 5, (0,255,255), -1)
 
 
   elif (reigon == "left"):
 
-     points['x']=points['x']+(int((width/2))-3*reigon_half)
+     points['x']=points['x']+(int((width/2))-3*reigon_half_width)
      points['y']=points['y']+(int((height/2))-reigon_half)
      cv2.circle(frame,(points['x'],points['y']), 5, (0,255,255), -1)
 
   elif (reigon == "right"):
-      points['x']=points['x']+(int((width/2))+reigon_half)
+      points['x']=points['x']+(int((width/2))+reigon_half_width)
       points['y']=points['y']+(int((height/2))-reigon_half)
       cv2.circle(frame,(points['x'],points['y']), 5, (0,255,255), -1)
 
   elif (reigon=="down"):
-    points['x']=points['x']+(int((width/2))-reigon_half)
+    points['x']=points['x']+(int((width/2))-reigon_half_width)
     points['y']=points['y']+(int((height/2))+reigon_half)
     cv2.circle(frame,(points['x'],points['y']), 5, (255,255,255), -1)
 
   elif(reigon=="middle"):
-    points['x']=points['x']+(int((width/2))-reigon_half)
+    points['x']=points['x']+(int((width/2))-reigon_half_width)
     points['y']=points['y']+(int((height/2))-reigon_half)
-    cv2.circle(frame,(points['x'],points['y']), 5, (255,255,255), -1)
+    cv2.circle(frame,(int(points['x']),int(points['y'])), 5, (255,255,255), -1)
 
     
 
@@ -352,7 +354,8 @@ def middle_reference_error(frame):
       
 
 
-cap = cv2.VideoCapture(0)
+#cap=cv2.VideoCapture("udpsrc port=5000 ! application/x-rtp,media=video,payload=26,clock-rate=90000,encoding-name=JPEG,framerate=30/1 ! rtpjpegdepay ! jpegdec ! videoconvert ! appsink",cv2.CAP_GSTREAMER)
+cap=cv2.VideoCapture(0)
 _,_f=cap.read()
 shape=_f.shape
 height=shape[0]
@@ -361,15 +364,18 @@ prev=""
 nexxt=""
 
 #we need to then divide the frame into 5 main reigons, we select the half length of the reigon
-reigon_half=100
+reigon_half=120
+
+reigon_half_width=200
+
 #threshold to say if we have red in this reigon or not
-threshold= 800000
+threshold= 600000
 
 while(1):
     
     #flag to check if the middle have a red in it
     middle_flag=1
-
+    time1=time.time()
     # Capture frame-by-frame
     ret, frame = cap.read()
 
@@ -381,20 +387,20 @@ while(1):
 
     #defination of the 5 reigons
     middle  = frame[ int(height/2)-reigon_half:int(height/2)+reigon_half 
-                    , int(width/2)-reigon_half:int(width/2)+reigon_half]
+                    , int(width/2)-reigon_half_width:int(width/2)+reigon_half_width]
 
     top     = frame[ int(height/2)-3*reigon_half:int(height/2)-reigon_half 
-                    , int(width/2)-reigon_half:int(width/2)+reigon_half]
+                    , int(width/2)-reigon_half_width:int(width/2)+reigon_half_width]
 
 
     right   = frame[ int(height/2)-reigon_half:int(height/2)+reigon_half 
-                    ,int(width/2)+reigon_half: int(width/2)+3*reigon_half]
+                    ,int(width/2)+reigon_half_width: int(width/2)+3*reigon_half_width]
 
     left    = frame[ int(height/2)-reigon_half:int(height/2)+reigon_half 
-                    , int(width/2)-3*reigon_half:int(width/2)-reigon_half]
+                    , int(width/2)-3*reigon_half_width:int(width/2)-reigon_half_width]
 
     down     = frame[int(height/2)+reigon_half:int(height/2)+3*reigon_half 
-                    , int(width/2)-reigon_half:int(width/2)+reigon_half]
+                    , int(width/2)-reigon_half_width:int(width/2)+reigon_half_width]
 
     #padding to easier the shape detection
     top     = cv2.copyMakeBorder(top,5,5,5,5,cv2.BORDER_CONSTANT,0)
@@ -616,7 +622,7 @@ while(1):
 
     else:
           #this makes us continue on the next state
-          next=prev
+          nexxt=prev
           #The other approach is to just search for red and go to it, this needs testing after applying the forward idea
           
     
@@ -625,9 +631,10 @@ while(1):
     if (prev!="" and middle_flag==1):
       points=actual_center(nexxt)
       errorx,errory=error_founder(points,frame)
-      yao_error=int(middle_reference_error(frame))
+      #yao_error=int(middle_reference_error(frame))
       #combines the errors into a string
-      error_string= str(errorx) + "," + str(errory)+ ","+str(yao_error)
+      #error_string= str(errorx) + "," + str(errory)+ ","+str(yao_error)
+      error_string= str(errorx) + "," + str(errory)
       #send the error via a udp socket
   
       #udb_socket.send(error_string)
@@ -635,19 +642,22 @@ while(1):
       #print errors
       print("Error in X is "+ str(errorx) )
       print("Error in Y is "+ str(errory) )
-      print("Error in Yao is "+ str(yao_error) )
+      #print("Error in Yao is "+ str(yao_error) )
 
       print(nexxt)
       #display them
       cv2.putText(frame, "next state is"+str(nexxt),(10, 10),cv2.FONT_HERSHEY_COMPLEX_SMALL,.7,(225,0,0))
       cv2.putText(frame, "error in x is"+str(errorx),(20, 20),cv2.FONT_HERSHEY_COMPLEX_SMALL,.7,(225,0,0))
       cv2.putText(frame, "error in Y is"+str(errory),(30, 30),cv2.FONT_HERSHEY_COMPLEX_SMALL,.7,(225,0,0))
-      cv2.putText(frame, "error in Yao is"+str(yao_error),(40, 40),cv2.FONT_HERSHEY_COMPLEX_SMALL,.7,(225,0,0))
+      #cv2.putText(frame, "error in Yao is"+str(yao_error),(40, 40),cv2.FONT_HERSHEY_COMPLEX_SMALL,.7,(225,0,0))
 
       
       #update the state
       prev=nexxt
-    
+      time2=time.time()
+
+      time_total=time2-time1 
+      print(time_total)
     # elif(prev!="" and middle_flag==0):
     #   #means we found red somewhere in the frame, and we want to go to it.
     #   #errorx=points_f['x']-width/2
