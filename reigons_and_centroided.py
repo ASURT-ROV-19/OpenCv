@@ -8,9 +8,111 @@ import cv2
 import numpy as np
 import math
 import time
+import imutils
+import socket
+from UDP import UDP_Client
+
+directions=[]
+
+#Define an object from the UDP class
+#Target ip is the Pi's address.
+#port is the port we are communicating with
+udb_socket=UDP_Client("192.168.43.232",9020)
+
+
+def black_tile_edges(frame):
+  frame = imutils.resize(frame, height = 300)
+  lower_hue = np.array([0,0,0])
+  upper_hue = np.array([255,255,50])
+  hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+  mask = cv2.inRange(hsv, lower_hue, upper_hue)
+  edges=edge_detect(mask)
+  cnts_b,h  = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+  if ( len(cnts_b)>0):
+    #we detected an edge, means now we are changing tiles
+    cnts_b = sorted(cnts_b, key = cv2.contourArea, reverse = True)[:2]
+    # we have so far a def. which finds the black contous, moving from this we can count the black we find the screen
+
+
+def  crack_length_estimaion(frame):
+  frame2=blue_filtering(frame)
+  blue=blue_amount_in_frames(frame2)
+  if( enough_blue(blue) ):
+    #edge detect
+    res_blue =edge_detect(frame2)
+    #contors finding 
+    cnts_blue,h  = cv2.findContours(res_blue, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    cnts_blue = sorted(cnts_blue, key = cv2.contourArea, reverse = True)[:2]
+    #draw the  blue contor
+    cv2.drawContours(frame2, cnts_blue, 0, (255,255,255), 3)
+    #Gets the length of biggest contor
+    peri = cv2.arcLength(cnts_blue[0], True)
+    #Approximates the Contor we have to one with less vertices
+    approx = cv2.approxPolyDP(cnts_t[0], 0.02 * peri, True)
+    vertices = cv2.convexHull(approx, clockwise=False)
+    for corner in vertices:
+      x,y=corner[0].ravel()
+      boo=boo+1
+      if boo==1:
+          x1_blue=x
+          y1_blue=y
+      elif boo==2:
+          x2_blue=x
+          y2_blue=y
+      elif boo==3:
+          x3_blue=x
+          y3_blue=y
+      elif boo==4:
+          x4_blue=x
+          y4_blue=y
+    ###########################
+    if abs(x1_blue-x2_blue) > abs(y1_blue-y2_blue) :
+      line1 = abs(x1_blue-x2_blue)
+    else :
+      line1 = abs(y1_blue-y2_blue)
+
+    #corner4-corner2 tooooo line2
+    if abs(x4_blue-x2_blue) > abs(y4_blue-y2_blue) :
+      line2 = abs(x4_blue-x2_blue)
+    else :
+      line2 = abs(y4_blue-y2_blue)
+
+    #corner3-corner2 tooooo line3
+    if abs(x3_blue-x2_blue) > abs(y3_blue-y2_blue) :
+      line3 = abs(x3_blue-x2_blue)
+    else :
+      line3 = abs(y3_blue-y2_blue)
+
+    if abs(line1-line2) > abs(line1-line3):
+        line2=line2
+    else:
+        line2=line3
+
+    if line1 < line2:
+        lin_ref=line1
+        pix_lin=line2
+    else :
+        lin_ref=line2
+        pix_lin=line1
+
+    #width of lenth 1.7cm -----> change to 1.8 or 1.9
+    len_of_line = (pix_lin * 1.7)/lin_ref
+    len_of_line=round(len_of_line, 1)
+    len_of_line=str(len_of_line)
+  
+
 
 def enough_red(red_value,threshold):
   if(red_value>threshold):
+    return True
+  else:
+    return False
+
+def enough_blue(blue_value):
+  #we need to get the value!
+  # number of blue in yara's photo : 14910902
+  blue_threshold=14910000
+  if(blue_value>blue_threshold):
     return True
   else:
     return False
@@ -25,14 +127,43 @@ def centroid_of_frame(frame):
   return frame_height,frame_height
 
 
+# def red_filtering(img):
+#     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+#     min = np.array([0, 100 , 100])
+#     max = np.array([179, 250, 250])
+#     mask = cv2.inRange(hsv, min, max)
+#     res = cv2.bitwise_and(img, img, mask=mask)
+#     #blur = cv2.bilateralFilter(res,9,75,75)
+#     return res
+
 def red_filtering(img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    min = np.array([0, 100 , 100])
-    max = np.array([179, 250, 250])
+    min = np.array([0, 100 , 0])
+    max = np.array([179, 255, 250])
     mask = cv2.inRange(hsv, min, max)
     res = cv2.bitwise_and(img, img, mask=mask)
+    #kernelClose = np.ones((5, 5),np.uint8)
+    #res = cv2.morphologyEx(res, cv2.MORPH_CLOSE, kernelClose)
     #blur = cv2.bilateralFilter(res,9,75,75)
     return res
+
+def blue_filtering(img):
+  hsv_blue = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+  #define lower and upper limit for the blue color
+  lower_blue=np.array([110,50,50])
+  upper_blue=np.array([130,255,255])
+  #define the mask
+  mask_blue=cv2.inRange(hsv_blue , lower_blue ,upper_blue)
+  #mask the image
+  res1= cv2.bitwise_and(img,img,mask=mask_blue)
+  return res1
+
+def black_filtering(img):
+  lower_hue = np.array([0,0,0])
+  upper_hue = np.array([255,255,50])
+  
+
+
 
 def red_amount_in_frames(pic):
     _s=pic.shape
@@ -42,6 +173,15 @@ def red_amount_in_frames(pic):
     red=np.sum(pic[0:height, 0:width])
     red=red-constant_error
     return red
+
+def blue_amount_in_frames(pic):
+    _s=pic.shape
+    height=_s[0]
+    width=_s[1]
+    # We need to find the constant error of blue!
+    #constant_error=3315
+    blue=np.sum(pic[0:height, 0:width])
+    return blue
 
 def edge_detect(frame):
   frame = cv2.Canny(frame, 100, 100)
@@ -87,7 +227,6 @@ def coordiante_fixer(reigon,points):
     cv2.circle(frame,(points['x'],points['y']), 5, (255,255,255), -1)
 
   elif(reigon=="middle"):
-    print("yara gat hena")
     points['x']=points['x']+(int((width/2))-reigon_half)
     points['y']=points['y']+(int((height/2))-reigon_half)
     cv2.circle(frame,(points['x'],points['y']), 5, (255,255,255), -1)
@@ -103,7 +242,7 @@ def coordiante_fixer(reigon,points):
 def actual_center(dir):
 
     #actual_centroid of the reigons
-    if (dir == "right"):
+    if (dir == "right") or (dir=="rightu") or (dir=="rightd"):
       #right
       try:
          right_cnt = cnts_r[0]
@@ -122,7 +261,7 @@ def actual_center(dir):
 
       
 
-    elif(dir == "left"):
+    elif(dir == "left") or (dir=="leftu") or (dir=="leftd"):
       #left
       try:
          left_cnt = cnts_l[0]
@@ -141,7 +280,7 @@ def actual_center(dir):
          return points_l
       
     
-    elif (dir == "up"):
+    elif (dir == "up") or (dir=="upl") or (dir=="upr"):
       #top
       try:
          top_cnt = cnts_t[0]
@@ -160,7 +299,7 @@ def actual_center(dir):
       
 
     
-    elif(dir == "down"):
+    elif(dir == "down") or (dir=="downl") or (dir=="downr"):
       #bottom
       try:
          down_cnt = cnts_d[0]
@@ -185,7 +324,7 @@ def actual_center(dir):
          cx_m = int(M_m['m10']/M_m['m00'])
          cy_m = int(M_m['m01']/M_m['m00'])
          points_m={"x":cx_m , "y":cy_m}
-         cv2.circle(left,(points_m["x"],points_m["y"]), 2, (255,255,255), -1)
+         cv2.circle(middle,(points_m["x"],points_m["y"]), 2, (255,255,255), -1)
          points_m=coordiante_fixer("middle",points_m)
          return points_m
         
@@ -194,6 +333,20 @@ def actual_center(dir):
          cv2.circle(middle,(points_m["x"],points_m["y"]), 2, (255,255,255), -1)
          points_m=coordiante_fixer("middle",points_m)
          return points_m
+
+def middle_reference_error(frame):
+  #this funcution will return the error between the main middle frame and the centroid of the contour 
+  points_testing={"x":xmiddle,"y":ymiddle}
+  points_testing=actual_center("middle")
+  cv2.circle(frame,(xmiddle,ymiddle), 4, (255,0,0), -1)
+  cv2.circle(frame,(int(width/2),int(height/2)),4,(255,255,130),-1)
+  middle_x_error=(width/2)-points_testing["x"]
+  cv2.line(frame,(points_testing['x'],points_testing['y']),(int(width/2),int(height/2)),(255,255,0),5)
+
+  return  middle_x_error
+
+
+#def find_biggest_red():
 
   
       
@@ -208,12 +361,14 @@ prev=""
 nexxt=""
 
 #we need to then divide the frame into 5 main reigons, we select the half length of the reigon
-reigon_half=70
+reigon_half=100
 #threshold to say if we have red in this reigon or not
 threshold= 800000
 
 while(1):
     
+    #flag to check if the middle have a red in it
+    middle_flag=1
 
     # Capture frame-by-frame
     ret, frame = cap.read()
@@ -322,7 +477,6 @@ while(1):
             
           elif (prev == "down"):
              nexxt="down"
-             points=actual_center("down")
              ###################################
 
         elif (right_conditon and left_condition):
@@ -349,9 +503,11 @@ while(1):
         elif(down_condition and left_condition):
           if(prev=="right"):
             nexxt="down"
+            print("entered here2")
             ###################################
            
           elif(prev=="up"):
+            print("entered here")
             nexxt="left"
             ###################################
             
@@ -375,26 +531,132 @@ while(1):
           elif(prev=="left"):
             nexxt="up"
             ###################################
-            
         
-      
+        ##########Step1-control##################################
+        if(prev=="downl"):nexxt="left"
+        elif(prev=="downr"):nexxt="right"
+        elif(prev=="rightu"):nexxt="up"
+        elif(prev=="rightd"):nexxt="down"  
+        elif(prev=="leftu"):nexxt="up"     
+        elif(prev=="leftd"):nexxt="down"  
+        elif(prev=="upl"):nexxt="left"   
+        elif(prev=="upr"):nexxt="right"     
+        ########################################################
+      else:
+        
+        #this case means there are no red in the middle reigon, so we need to either search for the biggest
+        #red contour and then find that error and send it to the PID, if we don't find ANY red, we just simply
+        #invert the next state
+
+
+
+        #we need to make a conditon to differentatiate the normal nexxt and the nexxt due to a fixed
+        #control
+
+        #step 1 , check the surronding frames
+        step_1_flag=1
+        if(prev=="up" or prev=="down"):
+          if(enough_red(red_left,threshold)):
+            #go to the contour of the left
+            if(prev=="up"):nexxt="rightu"
+            elif(prev=="down"):nexxt="rightd"  
+            step_1_flag=0
+
+          elif(enough_red(red_right,threshold)):
+            #go to the contour of the right
+            if(prev=="up"):nexxt="leftu"
+            elif(prev=="down"):nexxt="leftd"
+            step_1_flag=0
+        ###################################    
+        elif(prev=="left" or prev=="right"):
+          if(enough_red(red_top,threshold)):
+            #go to the contour of the left
+            if(prev=="left"):nexxt="downl"
+            elif(prev=="right"):nexxt="downr"
+            step_1_flag=0
+
+          elif(enough_red(red_down,threshold)):
+            #go to the contour of the right
+            if(prev=="left"):nexxt="upl"
+            elif(prev=="right"):nexxt="upr"
+            step_1_flag=0
+
+        # #step 2 , check the frame for ANY red.
+        # step_2_flag=1
+
+        # if(step_1_flag==1):
+        #   print("here")
+        #   middle_flag=0
+        #   #we didnot find red in any of the surronding rectangles
+        #   #let's search the whole frame for red
+        #   edged=edge_detect(frame)
+        #   cnts_f,h  = cv2.findContours(edged, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        #   cnts_f = sorted(cnts_f, key = cv2.contourArea, reverse = True)[:2]
+
+        #   #let's search for a contour in the frame, if we found one,let's go to it
+        #   if(len(cnts_f)>0):
+        #       print("am i here?")
+        #       frame_cnt = cnts_f[0]
+        #       peri = cv2.arcLength(frame_cnt[0], True)
+        #       if(peri>500):
+        #         print("am i here?2")
+        #         cv2.drawContours(frame, cnts_f, 0, (255,255,255), 3)
+        #         M_f= cv2.moments(frame_cnt)
+        #         cx_f = int(M_f['m10']/M_f['m00'])
+        #         cy_f = int(M_f['m01']/M_f['m00'])
+        #         points_f={"x":cx_f , "y":cy_f}
+        #         step_2_flag=0
+                
+        #         print("we found something")
+     
+
+
+        #if(step_2_flag==1):
+          #we didn't find ANY red , either revert the last state or just move the camera
+
     else:
           #this makes us continue on the next state
           next=prev
           #The other approach is to just search for red and go to it, this needs testing after applying the forward idea
           
+    
 
-    if (prev!=""):
+
+    if (prev!="" and middle_flag==1):
       points=actual_center(nexxt)
       errorx,errory=error_founder(points,frame)
+      yao_error=int(middle_reference_error(frame))
+      #combines the errors into a string
+      error_string= str(errorx) + "," + str(errory)+ ","+str(yao_error)
+      #send the error via a udp socket
+  
+      #udb_socket.send(error_string)
+      
+      #print errors
       print("Error in X is "+ str(errorx) )
       print("Error in Y is "+ str(errory) )
+      print("Error in Yao is "+ str(yao_error) )
 
+      print(nexxt)
+      #display them
+      cv2.putText(frame, "next state is"+str(nexxt),(10, 10),cv2.FONT_HERSHEY_COMPLEX_SMALL,.7,(225,0,0))
+      cv2.putText(frame, "error in x is"+str(errorx),(20, 20),cv2.FONT_HERSHEY_COMPLEX_SMALL,.7,(225,0,0))
+      cv2.putText(frame, "error in Y is"+str(errory),(30, 30),cv2.FONT_HERSHEY_COMPLEX_SMALL,.7,(225,0,0))
+      cv2.putText(frame, "error in Yao is"+str(yao_error),(40, 40),cv2.FONT_HERSHEY_COMPLEX_SMALL,.7,(225,0,0))
+
+      
+      #update the state
       prev=nexxt
+    
+    # elif(prev!="" and middle_flag==0):
+    #   #means we found red somewhere in the frame, and we want to go to it.
+    #   #errorx=points_f['x']-width/2
+    #   x="a"
+    #  # errory=points_f['y']-height/2
+
     
   
     
-
 
 
     #show the image
@@ -405,7 +667,7 @@ while(1):
     cv2.imshow('down',down)
     cv2.imshow('middle',middle)
 
-    #print(nexxt)
+  
 
     key=cv2.waitKey(1)
 
