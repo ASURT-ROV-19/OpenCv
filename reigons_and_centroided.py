@@ -242,7 +242,7 @@ def coordiante_fixer(reigon,points):
 
 
 def actual_center(dir):
-
+    ## WE NEED TO ADD A CONDITION TO REMOVE CONTOURS THAT ARE SMALLER THAN A CERTAIN LENGTH
     #actual_centroid of the reigons
     if (dir == "right") or (dir=="rightu") or (dir=="rightd"):
       #right
@@ -586,10 +586,12 @@ while(1):
             if(prev=="left"):nexxt="upl"
             elif(prev=="right"):nexxt="upr"
             step_1_flag=0
-
+        
+        #######TO DO############# FIX STEP 2
+        
         # #step 2 , check the frame for ANY red.
         # step_2_flag=1
-
+        
         # if(step_1_flag==1):
         #   print("here")
         #   middle_flag=0
