@@ -35,9 +35,7 @@ while True:
 	    imageName="/home/abdelrahman/ASURT/dummyPics/frame"+str(i)+".jpg"
             cv2.imwrite(imageName,frame)
             cv2.destroyWindow("stream")
-            analyzer.findImage(imageName)
             i=i+1
-            analyzer.destructor()
         continue
 
     elif key==ord('q'):
